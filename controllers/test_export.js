@@ -1,0 +1,5 @@
+const ctrl = require('./business_info.controller')
+console.log('EXPORT:', ctrl)
+console.log('getInfo:', typeof ctrl.getInfo)
+console.log('updateInfo:', typeof ctrl.updateInfo)
+console.log('createInfo:', typeof ctrl.createInfo)
