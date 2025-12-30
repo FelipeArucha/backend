@@ -1,79 +1,93 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
 const app = express();
-const path = require('path');
+const path = require("path");
 
 // Servir la carpeta uploads de forma estática
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-const config = require('./config/config');
-const db = require('./config/db');
+const config = require("./config/config");
+const db = require("./config/db");
 
 app.use(cors());
 app.use(express.json());
 
 // Rutas base
-app.get('/', (req, res) => {
-  res.json({ message: 'Billing System API' });
+app.get("/", (req, res) => {
+  res.json({ message: "Billing System API" });
 });
 
 // Rutas públicas (sin autenticación)
-app.use('/api/public', require('./routes/public.routes'));
+app.use("/api/public", require("./routes/public.routes"));
 
 // Importar rutas de usuario
-const userRoutes = require('./routes/user.routes');
-app.use('/api/users', userRoutes);
+const userRoutes = require("./routes/user.routes");
+app.use("/api/users", userRoutes);
 
 // Importar rutas de clientes
-const clientRoutes = require('./routes/client.routes');
-app.use('/api/clients', clientRoutes);
+const clientRoutes = require("./routes/client.routes");
+app.use("/api/clients", clientRoutes);
 
 // Importar rutas de productos
-const productRoutes = require('./routes/product.routes');
-app.use('/api/products', productRoutes);
+const productRoutes = require("./routes/product.routes");
+app.use("/api/products", productRoutes);
 
 // Importar rutas de ventas
-const saleRoutes = require('./routes/sale.routes');
-app.use('/api/sales', saleRoutes);
+const saleRoutes = require("./routes/sale.routes");
+app.use("/api/sales", saleRoutes);
 
 // Importar rutas de compras
-const purchaseRoutes = require('./routes/purchase.routes');
-app.use('/api/purchases', purchaseRoutes);
+const purchaseRoutes = require("./routes/purchase.routes");
+app.use("/api/purchases", purchaseRoutes);
 
 // Importar rutas de cotizaciones
-const quoteRoutes = require('./routes/quote.routes');
-app.use('/api/quotes', quoteRoutes);
+const quoteRoutes = require("./routes/quote.routes");
+app.use("/api/quotes", quoteRoutes);
 
 // Importar rutas de facturas
-const invoiceRoutes = require('./routes/invoice.routes');
-app.use('/api/invoices', invoiceRoutes);
+const invoiceRoutes = require("./routes/invoice.routes");
+app.use("/api/invoices", invoiceRoutes);
 
 // Importar rutas de business_info
-const businessInfoRoutes = require('./routes/business_info.routes');
-app.use('/api/business', businessInfoRoutes);
+const businessInfoRoutes = require("./routes/business_info.routes");
+app.use("/api/business", businessInfoRoutes);
 
 // Importar rutas de suppliers
-const supplierRoutes = require('./routes/supplier.routes');
-app.use('/api/suppliers', supplierRoutes);
+const supplierRoutes = require("./routes/supplier.routes");
+app.use("/api/suppliers", supplierRoutes);
 
 // Importar rutas de categories
 
 // Importar y montar rutas de prueba de email
-const testRoutes = require('./routes/test.routes')
-app.use('/api/test', testRoutes)
+const testRoutes = require("./routes/test.routes");
+app.use("/api/test", testRoutes);
 
-const categoryRoutes = require('./routes/category.routes');
-app.use('/api/categories', categoryRoutes);
+const categoryRoutes = require("./routes/category.routes");
+app.use("/api/categories", categoryRoutes);
 
 // Importar rutas de product_type
-const productTypeRoutes = require('./routes/product_type.routes');
-app.use('/api/product_type', productTypeRoutes);
+const productTypeRoutes = require("./routes/product_type.routes");
+app.use("/api/product_type", productTypeRoutes);
 
 // Middleware de errores
-const errorMiddleware = require('./middlewares/error.middleware');
+const errorMiddleware = require("./middlewares/error.middleware");
 app.use(errorMiddleware);
 
-app.listen(config.PORT, () => {
-  console.log(`Server running on port ${config.PORT}`);
+// app.listen(config.PORT, () => {
+//   console.log(`Server running on port ${config.PORT}`);
+// });
+const PORT = process.env.PORT || config.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+app.get("/health", async (req, res) => {
+  try {
+    const [rows] = await db.query("SELECT 1 AS ok");
+    res.json({ status: "ok", db: rows[0].ok });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
