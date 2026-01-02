@@ -18,12 +18,14 @@ const storage = multer.diskStorage({
 })
 const upload = multer({ storage })
 
+// Obtener info de negocio (solo admin o seller)
+router.get('/',  getInfo)
+
 router.use(auth)
 
 // Subir logo de negocio
 router.post('/upload-logo', upload.single('logo'), uploadLogo)
-// Obtener info de negocio (solo admin o seller)
-router.get('/',  getInfo)
+
 // Actualizar info (solo admin)
 router.put('/', updateInfo)
 // Crear info (solo admin, normalmente solo una vez)
