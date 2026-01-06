@@ -21,9 +21,23 @@ const pool = mysql.createPool({
   password: config.DB_PASSWORD,
   database: config.DB_NAME,
   port: config.DB_PORT,
+  ssl: {
+    rejectUnauthorized: true,
+  },
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
 });
+
+// const pool = mysql.createPool({
+//   host: config.DB_HOST,
+//   user: config.DB_USER,
+//   password: config.DB_PASSWORD,
+//   database: config.DB_NAME,
+//   port: config.DB_PORT,
+//   waitForConnections: true,
+//   connectionLimit: 10,
+//   queueLimit: 0,
+// });
 
 module.exports = pool;

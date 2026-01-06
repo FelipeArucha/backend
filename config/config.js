@@ -17,7 +17,7 @@ module.exports = {
   DB_USER: process.env.MYSQLUSER || process.env.DB_USER,
   DB_PASSWORD: process.env.MYSQLPASSWORD || process.env.DB_PASSWORD,
   DB_NAME: process.env.MYSQLDATABASE || process.env.DB_NAME,
-  DB_PORT: process.env.MYSQLPORT || 3306,
+  DB_PORT: process.env.MYSQLPORT || process.env.DB_PORT || 4000,
 
   JWT_SECRET: process.env.JWT_SECRET,
 };
