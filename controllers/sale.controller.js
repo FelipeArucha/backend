@@ -270,59 +270,126 @@ exports.createFromPaypal = async (req, res, next) => {
   }
 };
 
+// exports.annulSale = async (req, res, next) => {
+//   try {
+//     const saleId = req.params.id;
+//     const userId = req.user.id;
+//     // 1. Buscar detalles de la venta
+//     const details = await salesDetailsModel.getBySaleId(saleId);
+//     // 2. Marcar como anulada (si no lo está)
+//     await saleModel.annul(saleId, userId);
+//     // 3. Restaurar stock de productos
+//     for (const item of details) {
+//       await productModel.updateStock(
+//         item.product_id,
+//         item.quantity,
+//         "increase"
+//       );
+//     }
+//     // --------- Enviar email al cliente si tiene email ---------
+//     // Buscar venta y cliente
+//     const sale = await saleModel.getById(saleId);
+//     let clientEmail = null;
+//     let client = null;
+//     if (sale && sale.client_id) {
+//       client = await clientModel.getById(sale.client_id);
+//       clientEmail = client && client.email ? client.email : null;
+//     }
+//     if (clientEmail) {
+//       try {
+//         const saleReceiptCancelledTemplate = require("../templates/sale_receipt_cancelled.template");
+//         const businessInfo = {
+//           name: "Mi Empresa",
+//           address: "Dirección de la empresa",
+//           phone: "0000-0000",
+//           tax_id: "",
+//           logoUrl: "",
+//         };
+//         const html = saleReceiptCancelledTemplate({
+//           sale,
+//           client,
+//           details,
+//           businessInfo,
+//         });
+//         await sendEmail({
+//           to: clientEmail,
+//           subject: "Aviso: Venta anulada",
+//           text: `Le informamos que la venta #${sale.id} ha sido ANULADA. Si tiene dudas, contáctenos.`,
+//           html,
+//         });
+//       } catch (err) {
+//         console.error("Error enviando email de venta anulada:", err.message);
+//       }
+//     }
+//     // ----------------------------------------------------------
+//     res.json({ message: "Venta anulada y stock restaurado" });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
 exports.annulSale = async (req, res, next) => {
   try {
     const saleId = req.params.id;
     const userId = req.user.id;
-    // 1. Buscar detalles de la venta
+
+    // 1. Obtener detalles de la venta
     const details = await salesDetailsModel.getBySaleId(saleId);
-    // 2. Marcar como anulada (si no lo está)
+
+    // 2. Anular la venta
     await saleModel.annul(saleId, userId);
-    // 3. Restaurar stock de productos
-    for (const item of details) {
-      await productModel.updateStock(
-        item.product_id,
-        item.quantity,
-        "increase"
+
+    // 3. Restaurar stock EN PARALELO
+    if (details && details.length > 0) {
+      await Promise.all(
+        details.map((item) =>
+          productModel.updateStock(item.product_id, item.quantity, "increase")
+        )
       );
     }
-    // --------- Enviar email al cliente si tiene email ---------
-    // Buscar venta y cliente
-    const sale = await saleModel.getById(saleId);
-    let clientEmail = null;
-    let client = null;
-    if (sale && sale.client_id) {
-      client = await clientModel.getById(sale.client_id);
-      clientEmail = client && client.email ? client.email : null;
-    }
-    if (clientEmail) {
+
+    // 4. Responder rápido al frontend
+    res.json({ message: "Venta anulada y stock restaurado" });
+
+    // --------------------------------------------------
+    // 5. EMAIL EN BACKGROUND (NO BLOQUEANTE)
+    // --------------------------------------------------
+    (async () => {
       try {
+        const sale = await saleModel.getById(saleId);
+        if (!sale || !sale.client_id) return;
+
+        const client = await clientModel.getById(sale.client_id);
+        if (!client?.email) return;
+
         const saleReceiptCancelledTemplate = require("../templates/sale_receipt_cancelled.template");
+        const businessInfoModel = require("../models/business_info.model");
+        const info = await businessInfoModel.get();
+
         const businessInfo = {
-          name: "Mi Empresa",
-          address: "Dirección de la empresa",
-          phone: "0000-0000",
-          tax_id: "",
-          logoUrl: "",
+          name: info?.name || "",
+          address: info?.address || "",
+          phone: info?.phone || "",
+          tax_id: info?.fiscal_id || "",
+          logoUrl: info?.logo_url || "",
         };
+
         const html = saleReceiptCancelledTemplate({
           sale,
           client,
           details,
           businessInfo,
         });
+
         await sendEmail({
-          to: clientEmail,
+          to: client.email,
           subject: "Aviso: Venta anulada",
-          text: `Le informamos que la venta #${sale.id} ha sido ANULADA. Si tiene dudas, contáctenos.`,
+          text: `Le informamos que la venta #${sale.id} ha sido ANULADA.`,
           html,
         });
       } catch (err) {
         console.error("Error enviando email de venta anulada:", err.message);
       }
-    }
-    // ----------------------------------------------------------
-    res.json({ message: "Venta anulada y stock restaurado" });
+    })();
   } catch (err) {
     next(err);
   }
